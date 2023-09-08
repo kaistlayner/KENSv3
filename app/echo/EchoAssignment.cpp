@@ -34,14 +34,13 @@ int EchoAssignment::serverMain(const char *bind_ip, int port,
     return -1;
   }
 
-  struct sockaddr_in server_addr;
-  memset(&server_addr, 0, sizeof(server_addr));
+  struct sockaddr_in *server_addr = new sockaddr_in;
 
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_port = htons(port);
-  server_addr.sin_addr.s_addr = inet_addr(bind_ip);
+  server_addr->sin_family = AF_INET;
+  server_addr->sin_port = htons(port);
+  server_addr->sin_addr.s_addr = inet_addr(bind_ip);
 
-  if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) ==
+  if (bind(server_fd, (struct sockaddr *)server_addr, sizeof(*server_addr)) ==
       -1) {
     perror("bind");
     return -1;
@@ -52,24 +51,29 @@ int EchoAssignment::serverMain(const char *bind_ip, int port,
     return -1;
   }
 
-  struct sockaddr_in client_addr;
-  memset(&server_addr, 0, sizeof(server_addr));
-  socklen_t client_addr_len;
+  struct sockaddr_in *client_addr = new sockaddr_in;
+  socklen_t client_addr_len = sizeof(sockaddr_in);
 
   int client_fd =
-      accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len);
+      accept(server_fd, (struct sockaddr *)client_addr, &client_addr_len);
   if (client_fd == -1) {
     perror("accept");
     return -1;
   }
 
+  if (getpeername(client_fd, (struct sockaddr *)(client_addr),
+                  &client_addr_len)) {
+    delete client_addr;
+    return -1;
+  }
+
   char client_addr_string[INET_ADDRSTRLEN] = {0};
-  inet_ntop(AF_INET, &(client_addr.sin_addr), client_addr_string,
+  inet_ntop(AF_INET, &(client_addr->sin_addr.s_addr), client_addr_string,
             INET_ADDRSTRLEN);
 
-  char *buf = new char[20];
+  char *buf = (char *)calloc(10, sizeof(char));
 
-  int read_len = read(client_fd, buf, 20);
+  int read_len = read(client_fd, buf, 10);
 
   if (read_len == -1) {
     perror("read");
@@ -99,25 +103,32 @@ int EchoAssignment::clientMain(const char *server_ip, int port,
     return -1;
   }
 
-  struct sockaddr_in server_addr;
-  memset(&server_addr, 0, sizeof(server_addr));
+  struct sockaddr_in *server_addr = new sockaddr_in;
+  socklen_t server_addr_len = sizeof(sockaddr_in);
 
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_port = htons(port);
-  server_addr.sin_addr.s_addr = inet_addr(server_ip);
+  server_addr->sin_family = AF_INET;
+  server_addr->sin_port = htons(port);
+  server_addr->sin_addr.s_addr = inet_addr(server_ip);
 
-  if (connect(client_fd, (struct sockaddr *)&server_addr,
+  if (connect(client_fd, (struct sockaddr *)server_addr,
               sizeof(struct sockaddr_in)) == -1) {
     perror("connect");
     close(client_fd);
+
+    return -1;
+  }
+
+  if (getpeername(client_fd, (struct sockaddr *)(server_addr),
+                  &server_addr_len)) {
+    delete server_addr;
     return -1;
   }
 
   char server_addr_string[INET_ADDRSTRLEN] = {0};
-  inet_ntop(AF_INET, &(server_addr.sin_addr), server_addr_string,
+  inet_ntop(AF_INET, &(server_addr->sin_addr.s_addr), server_addr_string,
             INET_ADDRSTRLEN);
 
-  char *buf = new char[20];
+  char *buf = (char *)calloc(10, sizeof(char));
 
   int write_len = write(client_fd, command, strlen(command));
   if (write_len == -1) {
@@ -126,7 +137,7 @@ int EchoAssignment::clientMain(const char *server_ip, int port,
     return -1;
   }
 
-  int read_len = read(client_fd, buf, 20);
+  int read_len = read(client_fd, buf, 10);
   if (read_len == -1) {
     perror("read");
     close(client_fd);

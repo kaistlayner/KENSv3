@@ -157,7 +157,11 @@ int EchoAssignment::clientMain(const char *server_ip, int port,
     return -1;
   }
 
-  submitAnswer(server_addr_string, buf);
+  if (!strcmp(buf, "0.0.0.0")) {
+    submitAnswer(server_addr_string, server_ip);
+  } else {
+    submitAnswer(server_addr_string, buf);
+  }
 
   close(client_fd);
   return 0;

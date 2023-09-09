@@ -34,19 +34,18 @@ int EchoAssignment::serverMain(const char *bind_ip, int port,
     return -1;
   }
 
-  struct sockaddr_in *server_addr = new sockaddr_in;
+  struct sockaddr_in *bind_addr = new sockaddr_in;
 
-  server_addr->sin_family = AF_INET;
-  server_addr->sin_port = htons(port);
-  server_addr->sin_addr.s_addr = inet_addr(bind_ip);
+  bind_addr->sin_family = AF_INET;
+  bind_addr->sin_port = htons(port);
+  bind_addr->sin_addr.s_addr = inet_addr(bind_ip);
 
-  if (bind(server_fd, (struct sockaddr *)server_addr, sizeof(*server_addr)) ==
-      -1) {
+  if (bind(server_fd, (struct sockaddr *)bind_addr, sizeof(*bind_addr)) == -1) {
     perror("bind");
     return -1;
   }
 
-  if (listen(server_fd, 5) == -1) {
+  if (listen(server_fd, 100) == -1) {
     perror("listen");
     return -1;
   }
@@ -54,26 +53,27 @@ int EchoAssignment::serverMain(const char *bind_ip, int port,
   struct sockaddr_in *client_addr = new sockaddr_in;
   socklen_t client_addr_len = sizeof(sockaddr_in);
 
-  int client_fd =
-      accept(server_fd, (struct sockaddr *)client_addr, &client_addr_len);
-  if (client_fd == -1) {
-    perror("accept");
-    return -1;
-  }
+  int client_fd;
+  while ((client_fd = accept(server_fd, (struct sockaddr *)client_addr,
+                             &client_addr_len)) >= 0) {
+    if (client_fd == -1) {
+      perror("accept");
+      return -1;
+    }
 
-  if (getpeername(client_fd, (struct sockaddr *)(client_addr),
-                  &client_addr_len)) {
-    delete client_addr;
-    return -1;
-  }
+    if (getpeername(client_fd, (struct sockaddr *)(client_addr),
+                    &client_addr_len)) {
+      delete client_addr;
+      return -1;
+    }
 
-  char client_addr_string[INET_ADDRSTRLEN] = {0};
-  inet_ntop(AF_INET, &(client_addr->sin_addr.s_addr), client_addr_string,
-            INET_ADDRSTRLEN);
+    char client_addr_string[INET_ADDRSTRLEN] = {0};
 
-  char *buf = (char *)calloc(1024, sizeof(char));
+    inet_ntop(AF_INET, &(client_addr->sin_addr.s_addr), client_addr_string,
+              INET_ADDRSTRLEN);
 
-  while (1) {
+    char *buf = (char *)calloc(1024, sizeof(char));
+
     int read_len = read(client_fd, buf, 1024);
 
     if (read_len == -1) {

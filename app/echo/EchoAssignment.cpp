@@ -80,13 +80,22 @@ int EchoAssignment::serverMain(const char *bind_ip, int port,
     return -1;
   }
 
-  int write_len = write(client_fd, buf, read_len);
+  submitAnswer(client_addr_string, buf);
+
+  if (strcmp(buf, "hello") == 0) {
+    strcpy(buf, server_hello);
+  } else if (strcmp(buf, "whoami") == 0) {
+    strcpy(buf, client_addr_string);
+  } else if (strcmp(buf, "whoru") == 0) {
+    strcpy(buf, bind_ip);
+  }
+
+  int write_len = write(client_fd, buf, strlen(buf));
   if (write_len == -1) {
     perror("write");
     return -1;
   }
 
-  submitAnswer(client_addr_string, buf);
   return 0;
 }
 

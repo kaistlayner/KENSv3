@@ -71,29 +71,33 @@ int EchoAssignment::serverMain(const char *bind_ip, int port,
   inet_ntop(AF_INET, &(client_addr->sin_addr.s_addr), client_addr_string,
             INET_ADDRSTRLEN);
 
-  char *buf = (char *)calloc(10, sizeof(char));
+  char *buf = (char *)calloc(1024, sizeof(char));
 
-  int read_len = read(client_fd, buf, 10);
+  while (1) {
+    int read_len = read(client_fd, buf, 1024);
 
-  if (read_len == -1) {
-    perror("read");
-    return -1;
-  }
+    if (read_len == -1) {
+      perror("read");
+      return -1;
+    }
 
-  submitAnswer(client_addr_string, buf);
+    submitAnswer(client_addr_string, buf);
 
-  if (strcmp(buf, "hello") == 0) {
-    strcpy(buf, server_hello);
-  } else if (strcmp(buf, "whoami") == 0) {
-    strcpy(buf, client_addr_string);
-  } else if (strcmp(buf, "whoru") == 0) {
-    strcpy(buf, bind_ip);
-  }
+    if (!strcmp(buf, "hello")) {
+      strcpy(buf, server_hello);
+    } else if (!strcmp(buf, "whoami")) {
+      strcpy(buf, client_addr_string);
+    } else if (!strcmp(buf, "whoru")) {
+      strcpy(buf, bind_ip);
+    } else {
+      // echo buf
+    }
 
-  int write_len = write(client_fd, buf, strlen(buf));
-  if (write_len == -1) {
-    perror("write");
-    return -1;
+    int write_len = write(client_fd, buf, strlen(buf));
+    if (write_len == -1) {
+      perror("write");
+      return -1;
+    }
   }
 
   return 0;
@@ -137,7 +141,7 @@ int EchoAssignment::clientMain(const char *server_ip, int port,
   inet_ntop(AF_INET, &(server_addr->sin_addr.s_addr), server_addr_string,
             INET_ADDRSTRLEN);
 
-  char *buf = (char *)calloc(10, sizeof(char));
+  char *buf = (char *)calloc(1024, sizeof(char));
 
   int write_len = write(client_fd, command, strlen(command));
   if (write_len == -1) {
@@ -146,7 +150,7 @@ int EchoAssignment::clientMain(const char *server_ip, int port,
     return -1;
   }
 
-  int read_len = read(client_fd, buf, 10);
+  int read_len = read(client_fd, buf, 1024);
   if (read_len == -1) {
     perror("read");
     close(client_fd);

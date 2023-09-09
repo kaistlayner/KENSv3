@@ -61,12 +61,6 @@ int EchoAssignment::serverMain(const char *bind_ip, int port,
       return -1;
     }
 
-    if (getpeername(client_fd, (struct sockaddr *)(client_addr),
-                    &client_addr_len)) {
-      delete client_addr;
-      return -1;
-    }
-
     char client_addr_string[INET_ADDRSTRLEN] = {0};
 
     inet_ntop(AF_INET, &(client_addr->sin_addr.s_addr), client_addr_string,
@@ -128,12 +122,6 @@ int EchoAssignment::clientMain(const char *server_ip, int port,
     perror("connect");
     close(client_fd);
 
-    return -1;
-  }
-
-  if (getpeername(client_fd, (struct sockaddr *)(server_addr),
-                  &server_addr_len)) {
-    delete server_addr;
     return -1;
   }
 
